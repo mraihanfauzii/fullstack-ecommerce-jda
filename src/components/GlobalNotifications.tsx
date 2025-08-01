@@ -11,7 +11,7 @@ export default function GlobalNotifications() {
   useEffect(() => {
     // Otomatis hapus notifikasi setelah beberapa detik
     notifications.forEach((notif) => {
-      const timeout = setTimeout(() => {
+      const _timeout = setTimeout(() => {
         dispatch(removeNotification(notif.id));
       }, 5000); // Notifikasi hilang setelah 5 detik
     });

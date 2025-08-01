@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/authOptions';
 import prisma from '@/lib/db';
 
 // GET: Mengambil semua item di keranjang user yang sedang login
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   const session = await getServerSession(authOptions);
 
   if (!session || !session.user || !session.user.id) {

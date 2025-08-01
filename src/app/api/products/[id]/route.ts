@@ -1,8 +1,8 @@
-// src/app/api/products/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/authOptions";
-import prisma from '@/lib/db'; // Impor Prisma Client
+import prisma from '@/lib/db';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 // GET: Mengambil satu produk berdasarkan ID (Bisa diakses siapa saja)
 export async function GET(
@@ -116,7 +116,7 @@ export async function DELETE(
     }, { status: 200 });
   } catch (error) {
     // Prisma akan melempar error jika ID tidak ditemukan (P2025)
-    if ((error as any).code === 'P2025') {
+    if (error instanceof PrismaClientKnownRequestError && error.code === 'P2025') {
         return NextResponse.json({ status: 'error', message: 'Product not found' }, { status: 404 });
     }
     console.error(`Error deleting product ${id}:`, error);

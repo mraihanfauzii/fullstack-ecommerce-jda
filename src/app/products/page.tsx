@@ -52,7 +52,7 @@ export default function ProductManagementPage() {
         router.replace('/products'); // Hapus query param yang salah
       }
     }
-  }, [searchParams, products]); // Tambahkan products sebagai dependency
+  }, [searchParams, products, router]); // <-- PERBAIKAN: Tambahkan 'router' ke dalam dependency array
 
   const fetchProducts = async () => {
     setIsLoadingProducts(true); // Set loading true saat mulai fetch

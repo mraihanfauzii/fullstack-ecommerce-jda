@@ -136,7 +136,7 @@ export default function SignInPage() {
             Password: <span className="font-medium text-green-700">password123</span>
           </p>
           <p className="mt-4">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/auth/register" className="text-blue-500 hover:underline">
               Register here
             </Link>

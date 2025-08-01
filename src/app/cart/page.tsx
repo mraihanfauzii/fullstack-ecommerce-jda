@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 interface CartItemDisplay {
   id: string; // Ini adalah productId
@@ -220,7 +221,7 @@ export default function CartPage() {
                   <tr key={item.cartItemId} className="border-b border-gray-200 hover:bg-gray-50">
                     <td className="py-3 px-6 text-left whitespace-nowrap">
                       <div className="flex items-center">
-                        <img src={item.imageUrl || '/default-product.png'} alt={item.name} className="w-16 h-16 object-cover rounded-md mr-4" />
+                        <Image src={item.imageUrl || '/default-product.png'} alt={item.name} className="w-16 h-16 object-cover rounded-md mr-4" />
                         <span>{item.name}</span>
                       </div>
                     </td>
