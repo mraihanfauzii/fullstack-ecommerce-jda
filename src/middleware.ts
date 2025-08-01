@@ -37,6 +37,7 @@ export default withAuth(
   },
   {
     callbacks: {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       authorized: ({ token }) => {
         return true;
       },

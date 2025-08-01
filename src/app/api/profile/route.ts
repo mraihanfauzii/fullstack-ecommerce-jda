@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest) {
     });
 
     if (updatedUser) {
-      // 4. Perbaikan pada destructuring: 'password' dihindari
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password: _, ...userWithoutPassword } = updatedUser;
       return NextResponse.json(userWithoutPassword, { status: 200 });
     } else {

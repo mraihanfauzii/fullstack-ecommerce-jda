@@ -2,18 +2,6 @@ import { AuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from 'bcryptjs';
 import prisma from '@/lib/db';
-import { User as PrismaUser } from '@prisma/client';
-
-// Extend the NextAuth User type to include 'role'
-declare module "next-auth" {
-  interface User extends PrismaUser {}
-}
-
-declare module "next-auth/jwt" {
-  interface JWT {
-    role?: string;
-  }
-}
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -44,13 +32,13 @@ export const authOptions: AuthOptions = {
           return null; // Invalid password
         }
 
-        // Pastikan role disertakan dalam objek user yang dikembalikan
+        // Mengembalikan objek user yang kompatibel dengan NextAuth
         return {
           id: user.id,
           name: user.name,
           email: user.email,
           role: user.role,
-        } as PrismaUser; // Cast to PrismaUser type
+        };
       },
     }),
   ],
@@ -61,14 +49,14 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as PrismaUser).role; // Tambahkan role ke JWT token
+        token.role = user.role; // Role sudah ditambahkan di next-auth.d.ts, jadi ini aman
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string;
-        session.user.role = token.role as 'user' | 'admin'; // Tambahkan role ke session user
+        session.user.role = token.role as 'user' | 'admin'; // Role sudah ditambahkan di next-auth.d.ts, jadi ini aman
       }
       return session;
     },

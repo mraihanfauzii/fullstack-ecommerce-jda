@@ -9,17 +9,24 @@ export default function GlobalNotifications() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    // Otomatis hapus notifikasi setelah beberapa detik
+    // Array untuk menyimpan semua timeout ID yang dibuat di dalam effect ini
+    const timeouts: NodeJS.Timeout[] = [];
+
+    // Membuat timer untuk setiap notifikasi
     notifications.forEach((notif) => {
-      const _timeout = setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         dispatch(removeNotification(notif.id));
       }, 5000); // Notifikasi hilang setelah 5 detik
+
+      // Simpan ID timeout agar bisa dibersihkan nanti
+      timeouts.push(timeoutId);
     });
 
-    // Cleanup function untuk membersihkan timeout saat komponen unmount atau notifikasi berubah
+    // Cleanup function: membersihkan semua timer saat komponen unmount
+    // atau jika daftar notifikasi berubah (re-render)
     return () => {
-      notifications.forEach((notif) => {
-        if (notif.timeoutId) clearTimeout(notif.timeoutId);
+      timeouts.forEach((timeoutId) => {
+        clearTimeout(timeoutId);
       });
     };
   }, [notifications, dispatch]); // Rerun effect jika notifikasi atau dispatch berubah
