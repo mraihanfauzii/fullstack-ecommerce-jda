@@ -60,9 +60,9 @@ export default function DashboardPage() {
   return (
     <div className="container mx-auto p-8">
       <div className="bg-white p-8 rounded-lg shadow-md mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-4">Welcome to Your Dashboard!</h1>
+        <h1 className="text-gray-700 text-3xl font-bold mb-4">Welcome to Your Dashboard!</h1>
         {session && (
-          <p className="text-lg">Hello, {session.user?.name || session.user?.email}!</p>
+          <p className="text-gray-700 text-lg">Hello, {session.user?.name || session.user?.email}!</p>
         )}
         <p className="mt-2 text-gray-600">Explore our products below.</p>
       </div>
@@ -84,7 +84,7 @@ export default function DashboardPage() {
                   />
                 </Link>
                 <div className="p-5">
-                  <h3 className="text-xl font-semibold mb-2">
+                  <h3 className="text-gray-700 text-xl font-semibold mb-2">
                     <Link href={`/products/${product.id}`} className="hover:text-blue-600">
                       {product.name}
                     </Link>

@@ -63,7 +63,7 @@ export default function HomePage() {
                   />
                 </Link>
                 <div className="p-5">
-                  <h2 className="text-xl font-semibold mb-2">
+                  <h2 className="text-gray-700 text-xl font-semibold mb-2">
                     <Link href={`/products/${product.id}`} className="hover:text-blue-600">
                       {product.name}
                     </Link>

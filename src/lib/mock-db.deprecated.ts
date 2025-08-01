@@ -1,6 +1,6 @@
 // // Sudah tidak digunakan karena sudah menggunakan neon - postgre tetapi file tidak dihapus agar 
 // // dapat digunakan jika ingin mengubahnya kembali menjadi menggunakan penyimpanan local
-// import bcrypt from 'bcryptjs';
+// import bcrypt from 'bcrypt';
 
 // export type UserRole = 'user' | 'admin';
 

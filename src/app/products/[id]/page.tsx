@@ -20,7 +20,7 @@ export default function ProductDetailPage() {
   const { user, isAdmin, isAuthenticated, isLoading: isLoadingUser } = useCurrentUser();
   const userId = user?.id;
 
-  const dispatch = useAppDispatch(); // Inisialisasi dispatch hook
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (productId) {
@@ -60,7 +60,7 @@ export default function ProductDetailPage() {
       return;
     }
 
-    if (!product) { // Pastikan produk sudah terload
+    if (!product) {
         dispatch(addNotification({ message: "Product data not available to add to cart.", type: "error" }));
         return;
     }
@@ -129,7 +129,7 @@ export default function ProductDetailPage() {
           />
         </div>
         <div className="md:w-1/2">
-          <h1 className="text-4xl font-bold mb-4">{product.name}</h1>
+          <h1 className="text-gray-700 text-4xl font-bold mb-4">{product.name}</h1>
           <p className="text-gray-700 text-lg mb-6">{product.description}</p>
           <p className="text-blue-600 font-extrabold text-3xl mb-6">
             Rp{product.price.toLocaleString('id-ID')}
@@ -145,14 +145,14 @@ export default function ProductDetailPage() {
           ) : (
             <>
               <div className="flex items-center mb-6">
-                <label htmlFor="quantity" className="mr-4 text-lg font-medium">Quantity:</label>
+                <label htmlFor="quantity" className="text-gray-700 mr-4 text-lg font-medium">Quantity:</label>
                 <input
                   type="number"
                   id="quantity"
                   min="1"
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-20 p-2 border border-gray-300 rounded-md text-center"
+                  className="text-gray-700 w-20 p-2 border border-gray-300 rounded-md text-center"
                 />
               </div>
               <button

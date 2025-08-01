@@ -1,9 +1,8 @@
-// src/app/api/user/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/authOptions';
-import bcrypt from 'bcryptjs';
-import prisma from '@/lib/db'; // Impor Prisma Client
+import bcrypt from 'bcrypt';
+import prisma from '@/lib/db';
 
 export async function PUT(req: NextRequest) {
   const session = await getServerSession(authOptions);

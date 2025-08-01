@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Image from "next/image";
 import { Product } from '@prisma/client';
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCurrentUser } from "@/hooks/use-current-user";
 
-export default function ProductManagementPage() {
+function ProductManagementContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -22,7 +22,8 @@ export default function ProductManagementPage() {
 
   const { isAdmin, isLoading: isAuthLoading, isUnauthenticated } = useCurrentUser();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  // useSearchParams tetap di sini, karena komponen ini sudah di dalam Suspense
+  const searchParams = useSearchParams(); 
 
   // Effect untuk otentikasi dan redirect
   useEffect(() => {
@@ -43,16 +44,17 @@ export default function ProductManagementPage() {
   // Effect untuk penanganan query param 'edit'
   useEffect(() => {
     const editProductId = searchParams.get('edit');
-    if (editProductId && products.length > 0) { // Pastikan products sudah terload
-      const productToEdit = products.find(p => p.id === editProductId); // Cari di array products
+    if (editProductId && products.length > 0) {
+      const productToEdit = products.find(p => p.id === editProductId);
       if (productToEdit) {
         handleEdit(productToEdit);
       } else {
         setError("Product not found for editing.");
-        router.replace('/products'); // Hapus query param yang salah
+        router.replace('/products');
       }
     }
-  }, [searchParams, products, router]); // <-- PERBAIKAN: Tambahkan 'router' ke dalam dependency array
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, products]); // Anda bisa menghapus router dan fungsi dari dependency array jika menyebabkan re-run yang tidak perlu
 
   const fetchProducts = async () => {
     setIsLoadingProducts(true); // Set loading true saat mulai fetch
@@ -291,7 +293,7 @@ export default function ProductManagementPage() {
         <p className="text-center text-gray-600 text-xl">No products found. Add some!</p>
       ) : (
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold mb-6">Current Products</h2>
+          <h2 className="text-gray-700 text-2xl font-bold mb-6">Current Products</h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -354,5 +356,20 @@ export default function ProductManagementPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ProductManagementPage() {
+  // UI Pemuatan Sederhana untuk fallback Suspense
+  const loadingFallback = (
+    <div className="min-h-screen flex items-center justify-center">
+      <p className="text-xl">Loading Page...</p>
+    </div>
+  );
+
+  return (
+    <Suspense fallback={loadingFallback}>
+      <ProductManagementContent />
+    </Suspense>
   );
 }

@@ -1,16 +1,16 @@
 "use client";
 
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function SignInPage() {
+function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [globalError, setGlobalError] = useState<string | null>(null); // Untuk error dari backend/signIn
-  const [emailError, setEmailError] = useState<string | null>(null); // Live error untuk email
-  const [passwordError, setPasswordError] = useState<string | null>(null); // Live error untuk password
+  const [globalError, setGlobalError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -39,20 +39,19 @@ export default function SignInPage() {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newEmail = e.target.value;
     setEmail(newEmail);
-    setEmailError(validateEmail(newEmail)); // Validasi langsung saat mengetik
+    setEmailError(validateEmail(newEmail));
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newPassword = e.target.value;
     setPassword(newPassword);
-    setPasswordError(validatePassword(newPassword)); // Validasi langsung saat mengetik
+    setPasswordError(validatePassword(newPassword));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setGlobalError(null);
 
-    // Final validation before submission
     const finalEmailError = validateEmail(email);
     const finalPasswordError = validatePassword(password);
 
@@ -72,7 +71,7 @@ export default function SignInPage() {
     });
 
     if (result?.error) {
-      setGlobalError("Invalid email or password."); // Error dari backend NextAuth
+      setGlobalError("Invalid email or password.");
     } else {
       router.push(callbackUrl);
     }
@@ -81,7 +80,7 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+        <h1 className="text-gray-700 text-2xl font-bold mb-6 text-center">Login</h1>
         {globalError && <p className="text-red-500 text-sm mb-4 text-center">{globalError}</p>}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -94,7 +93,7 @@ export default function SignInPage() {
               className={`shadow appearance-none border ${emailError ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline`}
               value={email}
               onChange={handleEmailChange}
-              onBlur={() => setEmailError(validateEmail(email))} // Validasi saat keluar dari input
+              onBlur={() => setEmailError(validateEmail(email))}
               required
             />
             {emailError && <p className="text-red-500 text-xs italic mt-1">{emailError}</p>}
@@ -109,7 +108,7 @@ export default function SignInPage() {
               className={`shadow appearance-none border ${passwordError ? 'border-red-500' : 'border-gray-300'} rounded w-full py-2 px-3 text-gray-700 mb-1 leading-tight focus:outline-none focus:shadow-outline`}
               value={password}
               onChange={handlePasswordChange}
-              onBlur={() => setPasswordError(validatePassword(password))} // Validasi saat keluar dari input
+              onBlur={() => setPasswordError(validatePassword(password))}
               required
             />
             {passwordError && <p className="text-red-500 text-xs italic mt-1">{passwordError}</p>}
@@ -144,5 +143,13 @@ export default function SignInPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInForm />
+    </Suspense>
   );
 }
