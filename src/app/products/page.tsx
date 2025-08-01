@@ -139,9 +139,9 @@ export default function ProductManagementPage() {
     setEditingProduct(product);
     setFormData({
       name: product.name,
-      description: product.description,
+      description: product.description ?? "",
       price: product.price.toString(),
-      imageUrl: product.imageUrl,
+      imageUrl: product.imageUrl ?? "",
     });
     setShowForm(true);
   };
