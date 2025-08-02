@@ -2,42 +2,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/authOptions";
-import prisma from '@/lib/db'; // Impor Prisma Client
+import prisma from '@/lib/db';
 
-// GET: Mengambil semua produk (Bisa diakses siapa saja)
+// GET: Mengambil semua produk (Bisa diakses siapa saja untuk etalase utama)
 export async function GET() {
   try {
-    const products = await prisma.product.findMany();
+    const products = await prisma.product.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        store: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
+      }
+    });
     return NextResponse.json({
       status: 'success',
-      message: 'Products fetched successfully',
       data: products
     }, { status: 200 });
   } catch (error) {
     console.error("Error fetching products:", error);
-    return NextResponse.json({ status: 'error', message: 'Internal server error', details: (error as Error).message }, { status: 500 });
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }
 
-// POST: Menambahkan produk baru (Hanya Admin)
+// POST: Menambahkan produk baru (Hanya SELLER)
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user?.role !== 'admin') {
-    return NextResponse.json({
-      status: 'error',
-      message: 'Unauthorized. Admin access required.'
-    }, { status: 403 });
+  if (session?.user?.role !== 'SELLER') {
+    return NextResponse.json({ message: 'Forbidden. Only sellers can create products.' }, { status: 403 });
   }
 
   try {
     const { name, description, price, imageUrl } = await req.json();
 
-    if (!name || !description || typeof price !== 'number' || price <= 0 || !imageUrl) {
-      return NextResponse.json({
-        status: 'error',
-        message: 'Invalid product data: name, description, price (positive number), imageUrl are required.'
-      }, { status: 400 });
+    if (!name || typeof price !== 'number' || price <= 0) {
+      return NextResponse.json({ message: 'Invalid product data.' }, { status: 400 });
+    }
+
+    const store = await prisma.store.findUnique({
+      where: { userId: session.user.id },
+    });
+
+    if (!store) {
+        return NextResponse.json({ message: 'Seller store not found.' }, { status: 404 });
     }
 
     const newProduct = await prisma.product.create({
@@ -46,20 +57,13 @@ export async function POST(req: NextRequest) {
         description,
         price,
         imageUrl,
+        storeId: store.id,
       },
     });
 
-    return NextResponse.json({
-      status: 'success',
-      message: 'Product added successfully',
-      data: newProduct
-    }, { status: 201 });
+    return NextResponse.json({ status: 'success', data: newProduct }, { status: 201 });
   } catch (error) {
     console.error("Error adding product:", error);
-    return NextResponse.json({
-      status: 'error',
-      message: 'Internal server error',
-      details: (error as Error).message
-    }, { status: 500 });
+    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
   }
 }

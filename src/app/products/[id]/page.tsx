@@ -1,180 +1,114 @@
-"use client";
+// src/app/products/[id]/page.tsx
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Image from "next/image";
-import { Product } from '@prisma/client';
-import Link from "next/link";
-import { useCurrentUser } from "@/hooks/use-current-user";
-import { useAppDispatch } from '@/redux/hooks';
-import { addNotification } from '@/redux/features/notificationSlice';
+import Image from 'next/image';
+import Link from 'next/link';
+import prisma from '@/lib/db';
+import { AddToCartButton } from './_components/AddToCartButton';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/authOptions';
+import { Prisma } from '@prisma/client';
 
-export default function ProductDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const productId = params.id as string;
-  const [product, setProduct] = useState<Product | null>(null);
-  const [isLoadingProduct, setIsLoadingProduct] = useState(true);
-  const [quantity, setQuantity] = useState(1);
+export type ProductWithStore = Prisma.ProductGetPayload<{
+  include: { store: { select: { id: true; name: true } } };
+}>;
 
-  const { user, isAdmin, isAuthenticated, isLoading: isLoadingUser } = useCurrentUser();
-  const userId = user?.id;
+async function getProduct(productId: string) {
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: {
+      store: { select: { id: true,name: true }},
+      reviews: {
+        include: {
+          user: { select: { name: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      }
+    },
+  });
+  return product;
+}
 
-  const dispatch = useAppDispatch();
+// Komponen Halaman Detail Produk (Server Component)
+export default async function ProductDetailPage({ params }) {
+  const product = await getProduct(params.id);
+  const session = await getServerSession(authOptions);
 
-  useEffect(() => {
-    if (productId) {
-      const fetchProduct = async () => {
-        setIsLoadingProduct(true);
-        try {
-          const res = await fetch(`/api/products/${productId}`);
-          if (!res.ok) {
-            console.error(`Failed to fetch product with ID ${productId}:`, res.statusText);
-            if (res.status === 404) {
-              router.push("/not-found");
-            } else {
-                dispatch(addNotification({ message: "Failed to load product. Please try again.", type: "error" }));
-            }
-            return;
-          }
-          const responseData = await res.json();
-          if (responseData.status === 'success' && responseData.data) {
-            setProduct(responseData.data);
-          } else {
-            throw new Error(responseData.message || "Failed to get product data.");
-          }
-        } catch (error) {
-          console.error("Error fetching product:", error);
-          router.push("/not-found");
-        } finally {
-          setIsLoadingProduct(false);
-        }
-      };
-      fetchProduct();
-    }
-  }, [productId, router, dispatch]);
-
-  const handleAddToCart = async () => {
-    if (!isAuthenticated || !userId) {
-      router.push('/auth/signin');
-      return;
-    }
-
-    if (!product) {
-        dispatch(addNotification({ message: "Product data not available to add to cart.", type: "error" }));
-        return;
-    }
-
-    try {
-        const res = await fetch('/api/cart', { // <--- Panggil API cart POST
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                productId: product.id,
-                quantity: quantity,
-            }),
-        });
-
-        const responseData = await res.json();
-
-        if (res.ok && responseData.status === 'success') {
-            dispatch(addNotification({ message: `${quantity} ${product.name} added to cart!`, type: "success" }));
-            setQuantity(1); // Reset quantity setelah berhasil
-        } else {
-            dispatch(addNotification({ message: responseData.message || "Failed to add product to cart.", type: "error" }));
-        }
-    } catch (error) {
-        console.error("Error adding to cart:", error);
-        dispatch(addNotification({ message: "An unexpected error occurred while adding to cart.", type: "error" }));
-    }
-  };
-
-  const handleEditProduct = () => {
-    if (isAdmin) {
-      router.push(`/products?edit=${productId}`);
-    }
-  };
-
-  if (isLoadingUser || isLoadingProduct) {
+  if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-xl">Loading product details...</p>
+      <div className="container mx-auto p-8 text-center">
+        <h1 className="text-4xl font-bold">Product Not Found</h1>
       </div>
     );
   }
 
-  if (!product) {
-    return (
-        <div className="min-h-screen flex items-center justify-center flex-col bg-gray-100">
-            <p className="text-xl">Product not found.</p>
-            <Link href="/dashboard" className="text-blue-500 hover:underline mt-4">
-              ← Back to Products
-            </Link>
-        </div>
-    );
-  }
+  const isBuyer = session?.user?.role === 'BUYER';
+  const isSeller = session?.user?.role === 'SELLER';
+  
+  // Cek kepemilikan hanya jika user adalah SELLER
+  const store = isSeller ? await prisma.store.findUnique({ where: { userId: session?.user.id } }) : null;
+  const isOwner = store?.id === product.store.id;
 
   return (
     <div className="container mx-auto p-8">
-      <div className="bg-white rounded-lg shadow-md p-6 flex flex-col md:flex-row items-center md:items-start gap-8">
+      <div className="bg-white rounded-lg shadow-xl p-8 md:flex md:space-x-12">
         <div className="md:w-1/2">
           <Image
             src={product.imageUrl || '/default-product.png'}
             alt={product.name}
             width={600}
-            height={450}
-            className="w-full h-auto rounded-lg shadow-lg"
+            height={600}
+            className="w-full h-auto object-cover rounded-lg"
           />
         </div>
-        <div className="md:w-1/2">
-          <h1 className="text-gray-700 text-4xl font-bold mb-4">{product.name}</h1>
-          <p className="text-gray-700 text-lg mb-6">{product.description}</p>
-          <p className="text-blue-600 font-extrabold text-3xl mb-6">
-            Rp{product.price.toLocaleString('id-ID')}
-          </p>
-
-          {isAdmin ? (
-            <button
-              onClick={handleEditProduct}
-              className="bg-yellow-600 text-white py-3 px-6 rounded-lg text-lg font-semibold hover:bg-yellow-700 transition-colors"
-            >
-              Edit Product
-            </button>
-          ) : (
-            <>
-              <div className="flex items-center mb-6">
-                <label htmlFor="quantity" className="text-gray-700 mr-4 text-lg font-medium">Quantity:</label>
-                <input
-                  type="number"
-                  id="quantity"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="text-gray-700 w-20 p-2 border border-gray-300 rounded-md text-center"
-                />
-              </div>
-              <button
-                onClick={handleAddToCart}
-                className={`${
-                  isAuthenticated
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-gray-400 cursor-not-allowed"
-                } text-white py-3 px-6 rounded-lg text-lg font-semibold transition-colors`}
-                title={isAuthenticated ? "" : "Login to add to cart"}
-                disabled={!isAuthenticated}
-              >
-                Add to Cart
-              </button>
-            </>
-          )}
-
-          <div className="mt-8">
-            <Link href="/dashboard" className="text-blue-500 hover:underline">
-              ← Back to Products
+        <div className="md:w-1/2 mt-6 md:mt-0">
+          <h1 className="text-4xl font-bold text-gray-800">{product.name}</h1>
+          
+          <div className="mt-4">
+            <span className="text-gray-500">Sold by:</span>
+            <Link href={`/store/${product.store.id}`} className="ml-2 text-blue-600 font-semibold hover:underline">
+              {product.store.name}
             </Link>
           </div>
+          
+          <p className="text-gray-600 mt-4 text-lg">{product.description}</p>
+          <p className="text-blue-700 font-bold text-3xl mt-6">
+            Rp{product.price.toLocaleString('id-ID')}
+          </p>
+          
+          <div className="mt-8 border-t pt-8">
+            {isOwner ? (
+              // HANYA jika user adalah PEMILIK TOKO, tampilkan tombol Edit
+              <Link href={`/products?edit=${product.id}`} className="w-full block text-center bg-yellow-500 text-white py-3 px-6 rounded-lg font-bold text-lg hover:bg-yellow-600 transition-colors">
+                Edit Product
+              </Link>
+            ) : isBuyer ? (
+              // Jika bukan pemilik, dan user adalah BUYER, tampilkan tombol Add to Cart
+              <AddToCartButton product={product} />
+            ) : (
+              // Untuk kasus lain (Admin, Seller melihat produk orang lain, atau belum login), tampilkan pesan
+              <div className="p-3 bg-gray-100 rounded-md text-sm text-center text-gray-600">
+                {session ? 'Only buyers can purchase items.' : 'Login as a buyer to purchase this item.'}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="mt-12">
+        <h2 className="text-3xl font-bold mb-6">Product Reviews</h2>
+        <div className="space-y-6">
+            {product.reviews.length > 0 ? (
+                product.reviews.map(review => (
+                    <div key={review.id} className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex items-center mb-2">
+                            <span className="text-gray-900 font-bold">{review.user.name || 'Anonymous'}</span>
+                            <span className="ml-4 text-yellow-500">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</span>
+                        </div>
+                        <p className="text-gray-700">{review.comment}</p>
+                    </div>
+                ))
+            ) : (
+                <p className="text-gray-500">No reviews for this product yet.</p>
+            )}
         </div>
       </div>
     </div>

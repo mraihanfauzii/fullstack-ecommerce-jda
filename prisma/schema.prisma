@@ -14,19 +14,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Model untuk Pengguna (User)
-model User {
-  id        String    @id @default(cuid())
-  name      String
-  email     String    @unique
-  password  String
-  role      String    @default("user")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  cartItems CartItem[] // Tambahkan relasi ke CartItem
+enum Role {
+  ADMIN
+  BUYER
+  SELLER
 }
 
-// Model untuk Produk (Product)
+model User {
+  id        String    @id @default(cuid())
+  name      String?
+  email     String    @unique
+  password  String
+  role      Role      @default(BUYER)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  store     Store?
+  cartItems CartItem[]
+  orders    Order[]
+  reviews Review[]
+}
+
+model Store {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  userId   String   @unique
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products Product[]
+  orders   Order[] // <-- TAMBAHKAN RELASI BALASAN KE ORDER
+}
+
 model Product {
   id          String    @id @default(cuid())
   name        String
@@ -35,10 +57,14 @@ model Product {
   imageUrl    String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  cartItems   CartItem[] // Tambahkan relasi ke CartItem
+
+  storeId    String
+  store      Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews Review[]
 }
 
-// Model untuk Item Keranjang (CartItem)
 model CartItem {
   id        String   @id @default(cuid())
   userId    String
@@ -50,5 +76,74 @@ model CartItem {
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId]) // Pastikan satu user hanya memiliki satu entri untuk satu produk
+  @@unique([userId, productId])
+}
+
+enum OrderStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_FOR_STORE_CONFIRMATION
+  PROCESSING
+  SHIPPED
+  ARRIVED
+  WAITING_FOR_REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  totalAmount     Float
+  status          OrderStatus @default(WAITING_FOR_PAYMENT)
+  shippingMethod  String
+  shippingCost    Float
+  shippingAddress String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  
+  storeId String
+  store   Store  @relation(fields: [storeId], references: [id])
+  
+  items OrderItem[]
+
+  @@index([userId])
+  @@index([storeId])
+  reviews Review?
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  quantity  Int
+  price     Float
+
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  rating    Int      // Rating bintang, misal 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  // Relasi ke User, Product, dan Order
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  orderId   String  @unique // Pastikan satu order hanya bisa diulas sekali
+  order     Order   @relation(fields: [orderId], references: [id])
+
+  @@index([productId])
+  @@index([userId])
 }

@@ -125,14 +125,19 @@ function SignInForm() {
         <div className="mt-6 text-center text-sm text-gray-600 border-t pt-4">
           <p className="font-semibold mb-2">Akun :</p>
           <p>
-            Admin Credentials: <br/>
-            Email: <span className="font-medium text-blue-700">admin@example.com</span> <br/>
-            Password: <span className="font-medium text-blue-700">adminpassword</span>
+            Seller Credentials: <br/>
+            Email: <span className="font-medium text-blue-700">seller@example.com</span> <br/>
+            Password: <span className="font-medium text-blue-700">sellerpassword</span>
           </p>
           <p className="mt-2">
-            User Credentials: <br/>
-            Email: <span className="font-medium text-green-700">user@example.com</span> <br/>
-            Password: <span className="font-medium text-green-700">password123</span>
+            Buyer Credentials: <br/>
+            Email: <span className="font-medium text-green-700">buyer@example.com</span> <br/>
+            Password: <span className="font-medium text-green-700">buyerpassword</span>
+          </p>
+          <p className="mt-2">
+            Admin Credentials: <br/>
+            Email: <span className="font-medium text-red-700">admin@example.com</span> <br/>
+            Password: <span className="font-medium text-red-700">adminpassword</span>
           </p>
           <p className="mt-4">
             Don&apos;t have an account?{" "}

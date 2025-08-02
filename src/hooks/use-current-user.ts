@@ -7,8 +7,10 @@ export const useCurrentUser = () => {
 
   return {
     user: session?.user,
-    isAdmin: session?.user?.role === 'admin',
-    isUser: session?.user?.role === 'user',
+    isAdmin: session?.user?.role === 'ADMIN',
+    isSeller: session?.user?.role === 'SELLER',
+    isBuyer: session?.user?.role === 'BUYER',
+    storeId: session?.user?.storeId,
     isLoading: status === 'loading',
     isAuthenticated: status === 'authenticated',
     isUnauthenticated: status === 'unauthenticated',

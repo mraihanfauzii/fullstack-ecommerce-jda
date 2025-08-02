@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -6,67 +6,90 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Start seeding...');
 
-  // --- Hashing Passwords for Default Users ---
+  // Hapus data lama dengan urutan yang benar untuk menghindari error foreign key
+  await prisma.cartItem.deleteMany();
+  await prisma.product.deleteMany();
+  await prisma.store.deleteMany();
+  await prisma.user.deleteMany();
+  console.log('Old data cleared.');
+
+  // --- Hashing Passwords ---
   const adminPassword = await bcrypt.hash('adminpassword', 10);
-  const userPassword = await bcrypt.hash('password123', 10);
+  const sellerPassword = await bcrypt.hash('sellerpassword', 10);
+  const buyerPassword = await bcrypt.hash('buyerpassword', 10);
 
-  // --- Create Default Users ---
-  // Hapus user yang mungkin sudah ada agar tidak duplikat email
-  await prisma.user.deleteMany({
-    where: {
-      email: {
-        in: ['admin@example.com', 'user@example.com'],
-      },
-    },
-  });
-
+  // --- Create ADMIN User ---
   const adminUser = await prisma.user.create({
     data: {
-      name: 'Admin User',
+      name: 'Super Admin',
       email: 'admin@example.com',
       password: adminPassword,
-      role: 'admin',
+      role: Role.ADMIN, // Menggunakan Enum
     },
   });
-  console.log(`Created admin user with ID: ${adminUser.id}`);
+  console.log(`Created admin user: ${adminUser.email}`);
 
-  const regularUser = await prisma.user.create({
+  // --- Create SELLER User and a Store for them ---
+  const sellerUser = await prisma.user.create({
     data: {
-      name: 'Regular User',
-      email: 'user@example.com',
-      password: userPassword,
-      role: 'user',
+      name: 'Toko Elektronik Cemerlang',
+      email: 'seller@example.com',
+      password: sellerPassword,
+      role: Role.SELLER, // Menggunakan Enum
+      // Buat toko bersamaan dengan user
+      store: {
+        create: {
+          name: 'Toko Elektronik Cemerlang',
+          description: 'Menjual berbagai macam barang elektronik original dan bergaransi.',
+        },
+      },
+    },
+    // Sertakan data toko yang baru dibuat dalam hasil
+    include: {
+      store: true,
     },
   });
-  console.log(`Created regular user with ID: ${regularUser.id}`);
+  console.log(`Created seller user: ${sellerUser.email} with store: ${sellerUser.store?.name}`);
 
-  // --- Create Default Products ---
-  // Hapus semua produk yang ada untuk menghindari duplikasi saat seeding
-  await prisma.product.deleteMany({});
+  // --- Create BUYER User ---
+  const buyerUser = await prisma.user.create({
+    data: {
+      name: 'Budi Pembeli',
+      email: 'buyer@example.com',
+      password: buyerPassword,
+      role: Role.BUYER, // Menggunakan Enum
+    },
+  });
+  console.log(`Created buyer user: ${buyerUser.email}`);
 
-  const products = [
-    { name: "DJI Mini 4 Pro", description: "Drone kamera mini yang ringkas namun bertenaga dengan kamera 4K/60fps HDR dan deteksi rintangan omnidirectional. Ideal untuk pemula dan profesional.", price: 9900000, imageUrl: "/dji-mini-4-pro.jpg" },
-    { name: "Sony Alpha a7 III", description: "Kamera mirrorless full-frame dengan sensor 24.2MP, stabilisasi gambar 5-axis, dan perekaman video 4K. Cocok untuk fotografi dan videografi profesional.", price: 25000000, imageUrl: "/sony-a7iii.jpg" },
-    { name: "Logitech MX Master 3S", description: "Mouse ergonomis canggih dengan presisi tinggi dan scroll wheel MagSpeed. Dirancang untuk para profesional kreatif dan programmer.", price: 1500000, imageUrl: "/logitech-mx-master-3s.jpg" },
-    { name: "Apple MacBook Air M3", description: "Laptop tipis dan ringan dengan chip Apple M3 yang super cepat, layar Liquid Retina yang memukau, dan daya tahan baterai hingga 18 jam.", price: 18000000, imageUrl: "/macbook-air-m3.jpg" },
-    { name: "Samsung Galaxy S24 Ultra", description: "Smartphone flagship dengan kamera 200MP, S Pen terintegrasi, dan kekuatan Galaxy AI. Desain premium dengan Titanium Frame.", price: 21999000, imageUrl: "/samsung-s24-ultra.jpg" },
-    { name: "GoPro HERO12 Black", description: "Kamera aksi dengan kualitas video 5.3K60, stabilisasi HyperSmooth 6.0, dan daya tahan baterai yang ditingkatkan. Tahan air hingga 10m.", price: 6500000, imageUrl: "/gopro-hero12.jpg" },
-    { name: "Dell XPS 15", description: "Laptop premium dengan layar InfinityEdge 15.6 inci, performa tinggi untuk pekerjaan kreatif, dan desain yang elegan.", price: 23000000, imageUrl: "/dell-xps-15.jpg" },
-    { name: "Canon EOS R6 Mark II", description: "Kamera mirrorless full-frame dengan kecepatan tinggi, autofokus canggih, dan kemampuan video yang luar biasa. Ideal untuk fotografer dan videografer profesional.", price: 38000000, imageUrl: "/canon-r6-mk2.jpg" },
-    { name: "DJI Mavic 3 Classic", description: "Drone profesional dengan kamera Hasselblad 4/3 CMOS, jangkauan transmisi yang luas, dan deteksi rintangan omnidirectional. Menghasilkan gambar yang menakjubkan.", price: 27000000, imageUrl: "/dji-mavic-3-classic.jpg" },
-    { name: "LG C3 OLED TV 65-inch", description: "Smart TV OLED dengan kualitas gambar hitam sempurna, prosesor AI a9 Gen6, dan fitur gaming canggih. Pengalaman hiburan yang imersif.", price: 28000000, imageUrl: "/lg-c3-oled.jpg" },
-    { name: "HyperX QuadCast S", description: "Mikrofon gaming USB serbaguna dengan empat pola polar yang dapat dipilih, pencahayaan RGB yang dinamis, dan filter pop bawaan. Sempurna untuk streaming dan podcasting.", price: 1800000, imageUrl: "/hyperx-quadcast-s.jpg" },
-    { name: "Bose QuietComfort Earbuds II", description: "Earbud nirkabel dengan teknologi pembatalan bising terbaik di kelasnya, suara imersif, dan desain yang nyaman. Cocok untuk mendengarkan musik dan panggilan telepon.", price: 3900000, imageUrl: "/bose-qc-earbuds-ii.jpg" }
+
+  // --- Create Products for the SELLER's store ---
+  const storeId = sellerUser.store?.id;
+  if (!storeId) {
+    console.error("Could not find store ID for seller. Aborting product seed.");
+    return;
+  }
+  console.log(`Seeding products for store ID: ${storeId}`);
+
+  const productsToCreate = [
+    { name: "DJI Mini 4 Pro", description: "Drone kamera mini yang ringkas namun bertenaga.", price: 9900000, imageUrl: "/dji-mini-4-pro.jpg" },
+    { name: "Sony Alpha a7 III", description: "Kamera mirrorless full-frame dengan sensor 24.2MP.", price: 25000000, imageUrl: "/sony-a7iii.jpg" },
+    { name: "Logitech MX Master 3S", description: "Mouse ergonomis canggih dengan presisi tinggi.", price: 1500000, imageUrl: "/logitech-mx-master-3s.jpg" },
+    { name: "Apple MacBook Air M3", description: "Laptop tipis dan ringan dengan chip Apple M3.", price: 18000000, imageUrl: "/macbook-air-m3.jpeg" },
+    { name: "Samsung Galaxy S24 Ultra", description: "Smartphone flagship dengan kamera 200MP.", price: 21999000, imageUrl: "/samsung-s24-ultra.jpg" },
   ];
 
-  for (const product of products) {
+  for (const productData of productsToCreate) {
     await prisma.product.create({
-      data: product,
+      data: {
+        ...productData,
+        storeId: storeId, // Hubungkan produk dengan toko
+      },
     });
-    console.log(`Created product: ${product.name}`);
+    console.log(`Created product: ${productData.name}`);
   }
 
-  console.log('Seeding finished.');
+  console.log('Seeding finished successfully!');
 }
 
 main()

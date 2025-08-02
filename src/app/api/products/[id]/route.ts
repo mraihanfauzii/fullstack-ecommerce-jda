@@ -1,99 +1,74 @@
+// src/app/api/products/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from "@/lib/authOptions";
 import prisma from '@/lib/db';
-import { Prisma } from '@prisma/client';
 
-// Helper untuk mengekstrak ID dari URL
-function getProductId(req: NextRequest): string | null {
-  const url = new URL(req.url);
-  const pathSegments = url.pathname.split('/');
-  // Contoh path: /api/products/[id] -> id adalah segmen terakhir
-  const id = pathSegments.pop();
-  return id || null;
-}
-
-// GET: Mengambil satu produk berdasarkan ID
-export async function GET(req: NextRequest) {
-  const id = getProductId(req);
-  if (!id) {
-    return NextResponse.json({ status: 'error', message: 'Missing product ID' }, { status: 400 });
-  }
-
+// GET: Mengambil satu produk berdasarkan ID (Publik)
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
   try {
     const product = await prisma.product.findUnique({
-      where: { id: id },
+      where: { id },
+      include: {
+        store: { select: { id: true, name: true, description: true } }
+      }
     });
 
     if (!product) {
-      return NextResponse.json({ status: 'error', message: 'Product not found' }, { status: 404 });
+      return NextResponse.json({ message: 'Product not found' }, { status: 404 });
     }
-
     return NextResponse.json({ status: 'success', data: product }, { status: 200 });
   } catch (error) {
-    // DIPERBAIKI: Menambahkan console.error untuk menggunakan variabel 'error'
-    console.error(`[API GET /api/products/${id}]`, error);
-    return NextResponse.json({ status: 'error', message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ message: `Internal server error, ${error}.` }, { status: 500 });
   }
 }
 
-// PUT: Mengupdate produk berdasarkan ID
-export async function PUT(req: NextRequest) {
+// PUT: Mengupdate produk (Hanya pemilik toko atau ADMIN)
+export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
-    return NextResponse.json({ status: 'error', message: 'Unauthorized' }, { status: 403 });
-  }
+  if (!session?.user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-  const id = getProductId(req);
-  if (!id) {
-    return NextResponse.json({ status: 'error', message: 'Missing product ID' }, { status: 400 });
-  }
-
+  const { id } = params;
   try {
-    const updatedData = await req.json();
-    if (Object.keys(updatedData).length === 0) {
-      return NextResponse.json({ status: 'error', message: 'No data provided' }, { status: 400 });
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) return NextResponse.json({ message: 'Product not found' }, { status: 404 });
+
+    const store = session.user.role === 'SELLER' ? await prisma.store.findUnique({ where: { userId: session.user.id }}) : null;
+    const isOwner = store?.id === product.storeId;
+    
+    if (session.user.role !== 'ADMIN' && !isOwner) {
+        return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
-    const updatedProduct = await prisma.product.update({
-      where: { id: id },
-      data: updatedData,
-    });
-
+    const updatedData = await req.json();
+    const updatedProduct = await prisma.product.update({ where: { id }, data: updatedData });
     return NextResponse.json({ status: 'success', data: updatedProduct }, { status: 200 });
   } catch (error) {
-    // DIPERBAIKI: Menambahkan console.error untuk menggunakan variabel 'error'
-    console.error(`[API PUT /api/products/${id}]`, error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ status: 'error', message: 'Product not found to update' }, { status: 404 });
-    }
-    return NextResponse.json({ status: 'error', message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ message: `Internal server error, ${error}.` }, { status: 500 });
   }
 }
 
-// DELETE: Menghapus produk berdasarkan ID
-export async function DELETE(req: NextRequest) {
+// DELETE: Menghapus produk (Hanya pemilik toko atau ADMIN)
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
-    return NextResponse.json({ status: 'error', message: 'Unauthorized' }, { status: 403 });
-  }
+  if (!session?.user) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-  const id = getProductId(req);
-  if (!id) {
-    return NextResponse.json({ status: 'error', message: 'Missing product ID' }, { status: 400 });
-  }
-
+  const { id } = params;
   try {
-    await prisma.product.delete({
-      where: { id: id },
-    });
-    return NextResponse.json({ status: 'success', message: 'Product deleted' }, { status: 204 });
-  } catch (error) {
-    // DIPERBAIKI: Menambahkan console.error untuk menggunakan variabel 'error'
-    console.error(`[API DELETE /api/products/${id}]`, error);
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ status: 'error', message: 'Product not found' }, { status: 404 });
+    const product = await prisma.product.findUnique({ where: { id } });
+    if (!product) return NextResponse.json({ message: 'Product not found' }, { status: 404 });
+
+    const store = session.user.role === 'SELLER' ? await prisma.store.findUnique({ where: { userId: session.user.id } }) : null;
+    const isOwner = store?.id === product.storeId;
+
+    if (session.user.role !== 'ADMIN' && !isOwner) {
+        return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
-    return NextResponse.json({ status: 'error', message: 'Internal server error' }, { status: 500 });
+
+    await prisma.product.delete({ where: { id } });
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    return NextResponse.json({ message: `Internal server error, ${error}.` }, { status: 500 });
   }
 }

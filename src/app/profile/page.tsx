@@ -20,6 +20,7 @@ export default function ProfilePage() {
   // Sinkronisasi state form dengan data sesi saat komponen dimuat
   useEffect(() => {
     if (session?.user) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
       setName(session.user.name || "");
       setEmail(session.user.email || "");
     }

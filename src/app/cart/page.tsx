@@ -156,43 +156,8 @@ export default function CartPage() {
     }
   };
 
-  const handleCheckout = async () => {
-    setMessage(null);
-    setIsError(false);
-    if (!confirm("Proceeding to checkout! (This is a mock checkout). Do you want to clear your cart?")) {
-      return;
-    }
-
-    try {
-        const res = await fetch('/api/cart', { // <--- Panggil API DELETE /api/cart untuk clear all
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ clearAll: true }), // Kirim clearAll: true
-        });
-
-        const responseData = await res.json();
-
-        if (res.ok && responseData.status === 'success') {
-            setMessage("Checkout successful! Your cart has been cleared.");
-            setIsError(false);
-            setCartItems([]); // Kosongkan tampilan keranjang
-            router.push("/dashboard");
-        } else {
-            setMessage(responseData.message || "Failed to proceed to checkout and clear cart.");
-            setIsError(true);
-        }
-    } catch (error) {
-        console.error("Error during checkout:", error);
-        setMessage("An unexpected error occurred during checkout.");
-        setIsError(true);
-    } finally {
-        setTimeout(() => {
-            setMessage(null);
-            setIsError(false);
-        }, 3000);
-    }
+  const handleCheckout = () => {
+    router.push('/checkout');
   };
 
   return (
@@ -251,7 +216,7 @@ export default function CartPage() {
           </div>
           <div className="mt-8 flex justify-end items-center">
             <div className="text-right">
-              <p className="text-xl font-bold text-gray-800">Total: Rp {calculateTotal().toLocaleString('id-ID')}</p>
+              <p className="text-xl font-bold text-white-800">Total: Rp {calculateTotal().toLocaleString('id-ID')}</p>
               <button
                 onClick={handleCheckout}
                 className="mt-4 bg-green-600 text-white px-6 py-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300"
